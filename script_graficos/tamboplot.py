@@ -126,14 +126,42 @@ def assign_to_detector(det_position,df,tol,pf_tol=(None,None)):
         else:
             df.drop(index, inplace=True, axis=0)
     return df    
+def assign_to_detector2(det_position,df,d_side=1):
+    '''
+    given a detector position and a tolerance (radius), assign_to_detector(det_position,df,tol) filters the particles that fall
+    inside that given detector and updates the dataframe of particles, assigning the
+    detector position to the 'detector' column of those entries that fall inside the detector
+    
+    it also deletes the entries that are in the neighbourhood of the detector but do not fall inside the detector
+    
+    the parameters are:
+    det_position:              a tuple that contains the position (x,y) of the detector
+    df:                        the DataFrame of all entries
+    tol:                       a tolerance for particle detection (radius of the detector)
+    pf_tol=(pf_tolx,pf_toly):  [IGNORE] a tolerance for a preliminary filtering of particles in a rectangular neighbourhood of the detector 
+                               (dimensions: 2*pf_tolx by 2*pf_toly) centered at the detector.
+                               it is necesary that tol<=pf_tol(both components). large values will cause problems if the rectangular
+                               neighbourhood is too big and overlaps with the bounds of other detectors 
+    
+    the function returns the updated DataFrame
+                          
+    '''
+        
+    det_x,det_y=det_position
+    possible_particles_index=df.index[(df['x']<=det_x+d_side/2.0) & (df['x']>=det_x-d_side/2.0) & (df['y']<=det_y+d_side/2.0) & (df['y']>=det_y-d_side/2.0)].tolist()
+    for index in possible_particles_index:
+        df.at[index,'detector']= det_position
+    return df    
 
-#PARAMETERS
-#Paths
+## PARAMETERS
+# Paths
 txt_path='8-12/DAT000008-inclined (2).txt'
-#detector parameters
+# Array parameters
 xlims=(-5000,5000)
 ylims=(-1375.5,2000)
 sep=150
+# Detector dimensions
+d_side=1
 
 ## TXT to Dataframe
 all_data=txt_to_df(txt_path,xlims=(-5000,5000),ylims=(-2000,2000),inclined=True)
@@ -176,7 +204,7 @@ i=0
 filtered_data=all_data.copy()
 start=default_timer()
 for det_position in detector_grid_list:
-    assign_to_detector(det_position,filtered_data,tol=10,pf_tol=(10.1,10.1))
+    assign_to_detector2(det_position,filtered_data,d_side=1)
     i+=1
     now=default_timer()
     imprimir_barra_de_carga(now-start,i,len(detector_grid_list), longitud=50)
