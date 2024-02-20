@@ -155,16 +155,12 @@ def assign_to_detector2(det_position,df,d_side=1):
 
 ## PARAMETERS
 # Paths
-txt_path='8-12/DAT000008-inclined (2).txt'
+# txt_path='8-12/DAT000008-inclined (2).txt'
+
 # Array parameters
 xlims=(-5000,5000)
 ylims=(-1375.5,2000)
 sep=150
-# Detector dimensions
-d_side=1
-
-## TXT to Dataframe
-all_data=txt_to_df(txt_path,xlims=(-5000,5000),ylims=(-2000,2000),inclined=True)
 
 ## DEFINING DETECTOR ARRAY
 x_dets=[]
@@ -199,41 +195,49 @@ for y in y_dets:
 #detector grid list (triangular array)
 detector_grid_list=complete_grid_list[1::2]
 
-## DETECTOR ASSIGNMENT AND GEOMETRIC FILTERING
-i=0
-filtered_data=all_data.copy()
-start=default_timer()
-for det_position in detector_grid_list:
-    assign_to_detector2(det_position,filtered_data,d_side=1)
-    i+=1
-    now=default_timer()
-    imprimir_barra_de_carga(now-start,i,len(detector_grid_list), longitud=50)
-filtered_data.dropna(inplace=True)
-filtered_data=filtered_data.reset_index(drop=True)
+def process_data(txt_path,detector_grid_list,complete_grid_list):
+    ## TXT to Dataframe
+    all_data=txt_to_df(txt_path,xlims=xlims,ylims=ylims,inclined=True)
 
-## ENERGY IN EACH DETECTOR
-count=0
-energies=[]
+    ## DETECTOR ASSIGNMENT AND GEOMETRIC FILTERING
+    i=0
+    filtered_data=all_data.copy()
+    start=default_timer()
+    for det_position in detector_grid_list:
+        assign_to_detector2(det_position,filtered_data,d_side=2)  #For a square detector with side length of 2m
+        i+=1
+        now=default_timer()
+        imprimir_barra_de_carga(now-start,i,len(detector_grid_list), longitud=50)
+    filtered_data.dropna(inplace=True)
+    filtered_data=filtered_data.reset_index(drop=True)
 
-for det_position in complete_grid_list:
-    det_data=filtered_data[filtered_data['detector']==det_position]
-    deposited_energy=sum(det_data['ek'])
-    energies.append(deposited_energy)
+    ## ENERGY IN EACH DETECTOR
+    count=0
+    energies=[]
+
+    for det_position in complete_grid_list:
+        det_data=filtered_data[filtered_data['detector']==det_position]
+        deposited_energy=sum(det_data['ek'])
+        energies.append(deposited_energy)
+        
+    y_dets=np.unique(np.asarray(complete_grid_list)[:,1])
+    x_dets=np.unique(np.asarray(complete_grid_list)[:,0])
+    len_x=len(x_dets)
+    len_y=len(y_dets)
+
+    det_matrix=np.zeros((len_y,len_x,3)) #det_matrix[i,j,:] (position_x,position_y,energy)
+
+    for i in range(len_y):
+        y_pos=y_dets[-i-1]
+        for j in range(len_x):
+            x_pos=x_dets[j]
+            det_matrix[i,j,0]=x_pos
+            det_matrix[i,j,1]=y_pos
+            det_matrix[i,j,2]=float(energies[complete_grid_list.index((x_pos,y_pos))])
+
+    det_energies = det_matrix[:,:,2]
+    det_total_energy = np.sum(det_energies)
+    primary_energy = 1
+    return primary_energy,det_energies,det_total_energy
     
-y_dets=np.unique(np.asarray(complete_grid_list)[:,1])
-x_dets=np.unique(np.asarray(complete_grid_list)[:,0])
-len_x=len(x_dets)
-len_y=len(y_dets)
-
-det_matrix=np.zeros((len_y,len_x,3)) #det_matrix[i,j,:] (position_x,position_y,energy)
-
-for i in range(len_y):
-    y_pos=y_dets[-i-1]
-    for j in range(len_x):
-        x_pos=x_dets[j]
-        det_matrix[i,j,0]=x_pos
-        det_matrix[i,j,1]=y_pos
-        det_matrix[i,j,2]=float(energies[complete_grid_list.index((x_pos,y_pos))])
-
-## GRAPHS
-
+## 
