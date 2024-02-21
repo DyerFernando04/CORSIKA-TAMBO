@@ -5,8 +5,9 @@ import matplotlib.colors as cl
 from timeit import default_timer
 from datetime import timedelta
 from tqdm import tqdm
+import os
 
-#FUNCTIONS
+## FUNCTIONS
 def formato_tiempo(segundos):
     delta_tiempo = timedelta(seconds=segundos)
     # Construye la cadena de tiempo
@@ -152,12 +153,15 @@ def assign_to_detector2(det_position,df,d_side=1):
     for index in possible_particles_index:
         df.at[index,'detector']= det_position
     return df    
+def list_directories(path):
+    directories = []
+    for name in os.listdir(path):
+        full_path = os.path.join(path, name)
+        if os.path.isdir(full_path):
+            directories.append(name)
+    return directories
 
-## PARAMETERS
-# Paths
-# txt_path='8-12/DAT000008-inclined (2).txt'
-
-# Array parameters
+## Array parameters
 xlims=(-5000,5000)
 ylims=(-1375.5,2000)
 sep=150
@@ -195,6 +199,7 @@ for y in y_dets:
 #detector grid list (triangular array)
 detector_grid_list=complete_grid_list[1::2]
 
+## PROCESS_DATA FUNCTION
 def process_data(txt_path,detector_grid_list,complete_grid_list):
     ## TXT to Dataframe
     all_data=txt_to_df(txt_path,xlims=xlims,ylims=ylims,inclined=True)
@@ -237,7 +242,21 @@ def process_data(txt_path,detector_grid_list,complete_grid_list):
 
     det_energies = det_matrix[:,:,2]
     det_total_energy = np.sum(det_energies)
-    primary_energy = 1
-    return primary_energy,det_energies,det_total_energy
+    return det_total_energy,det_energies
     
-## 
+
+## PARAMETERS
+# Paths
+# txt_path='8-12/DAT000008-inclined (2).txt'
+
+
+data_directory =
+energy_directories = list_directories(data_directory)
+for directory_name in energy_directories:
+    primary_energy=float(directory_name)
+    directory_path= os.path.join(data_directory, directory_name)
+     
+
+
+    det_total_energy,det_energies = process_data(txt_path,detector_grid_list,complete_grid_list)
+
