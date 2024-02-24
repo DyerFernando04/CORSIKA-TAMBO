@@ -158,7 +158,7 @@ def list_directories(path):
     directories = []
     for name in os.listdir(path):
         full_path = os.path.join(path, name)
-        if os.path.isdir(full_path):
+        if os.path.isdir(full_path) and not name[0]=='.':
             directories.append(name)
     return directories
 def list_dats(path):
@@ -171,8 +171,8 @@ def list_dats(path):
 
 
 ## Array parameters
-xlims=(-5000,5000)
-ylims=(-1375.5,2000)
+xlims=(-1250,1250)
+ylims=(-1375.5,1375.5)
 sep=150
 
 ## DEFINING DETECTOR ARRAY
@@ -259,7 +259,7 @@ def process_data(txt_path,detector_grid_list,complete_grid_list):
 # txt_path='8-12/DAT000008-inclined (2).txt'
 
 
-data_directory = '/c/Users/cg_h2/Documents/data_tambo/DATA/'
+data_directory = r'C:\Users\cg_h2\Documents\data_tambo\DATA'
 energy_directories = list_directories(data_directory)
 
 primaries_list=[]
@@ -278,10 +278,10 @@ for directory_name in energy_directories:
         det_energies_list.append(det_energies)
         det_totals_list.append(det_total_energy)        
     except:
-        print(f'{directory_name} Failed.')
+        print(f'\n{directory_name} Failed.')
         exceptions.append(directory_name)
 
-    print(f'{directory_name} successful.')
+    print(f'\n{directory_name} successful.')
     count+=1
     left=len(energy_directories)-count
     print(f'{left} directories remaining')
@@ -291,7 +291,7 @@ print(f'The following exceptions have been encountered{exceptions}.')
 if len(primaries_list)==len(det_energies_list) and len(det_energies_list)== len(det_totals_list):
     save_flag = input('Save data?[y/n]: ')
     if save_flag=='y':
-        pickle_path='/c/Users/cg_h2/Documents/data_tambo/'
+        pickle_path=r'C:\Users\cg_h2\Documents\data_tambo'
         pimaries_path=os.path.join(pickle_path, 'primaries.pickle')
         det_energies_path=os.path.join(pickle_path, 'det_energies.pickle')
         det_totals_path=os.path.join(pickle_path, 'det_totals.pickle')
