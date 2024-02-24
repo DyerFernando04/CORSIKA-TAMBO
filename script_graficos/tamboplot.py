@@ -6,6 +6,7 @@ from timeit import default_timer
 from datetime import timedelta
 from tqdm import tqdm
 import os
+import pickle
 
 ## FUNCTIONS
 def formato_tiempo(segundos):
@@ -160,6 +161,14 @@ def list_directories(path):
         if os.path.isdir(full_path):
             directories.append(name)
     return directories
+def list_dats(path):
+    directories = []
+    for name in os.listdir(path):
+        full_path = os.path.join(path, name)
+        if os.path.isdir(full_path):
+            directories.append(name)
+    return directories
+
 
 ## Array parameters
 xlims=(-5000,5000)
@@ -250,13 +259,53 @@ def process_data(txt_path,detector_grid_list,complete_grid_list):
 # txt_path='8-12/DAT000008-inclined (2).txt'
 
 
-data_directory =
+data_directory = '/c/Users/cg_h2/Documents/data_tambo/DATA/'
 energy_directories = list_directories(data_directory)
+
+primaries_list=[]
+det_energies_list=[]
+det_totals_list=[]
+exceptions=[]
+count=0
 for directory_name in energy_directories:
-    primary_energy=float(directory_name)
+    print(f'{directory_name} is being processed.')
+    primary_energy=float(directory_name.split('_')[1])
     directory_path= os.path.join(data_directory, directory_name)
-     
+    try:
+        txt_path= os.path.join(directory_path, 'data01.txt')
+        det_total_energy,det_energies = process_data(txt_path,detector_grid_list,complete_grid_list)
+        primaries_list.append(primary_energy)
+        det_energies_list.append(det_energies)
+        det_totals_list.append(det_total_energy)        
+    except:
+        print(f'{directory_name} Failed.')
+        exceptions.append(directory_name)
 
+    print(f'{directory_name} successful.')
+    count+=1
+    left=len(energy_directories)-count
+    print(f'{left} directories remaining')
+print('Data has been processed')
+print(f'The following exceptions have been encountered{exceptions}.')
 
-    det_total_energy,det_energies = process_data(txt_path,detector_grid_list,complete_grid_list)
+if len(primaries_list)==len(det_energies_list) and len(det_energies_list)== len(det_totals_list):
+    save_flag = input('Save data?[y/n]: ')
+    if save_flag=='y':
+        pickle_path='/c/Users/cg_h2/Documents/data_tambo/'
+        pimaries_path=os.path.join(pickle_path, 'primaries.pickle')
+        det_energies_path=os.path.join(pickle_path, 'det_energies.pickle')
+        det_totals_path=os.path.join(pickle_path, 'det_totals.pickle')
+
+        with open(pimaries_path, 'wb') as file:
+            pickle.dump(primaries_list, file)
+
+        with open(det_energies_path, 'wb') as file:
+            pickle.dump(det_energies_list, file)
+
+        with open(det_totals_path, 'wb') as file:
+            pickle.dump(det_totals_list, file)
+    else:
+        print('Not saved')
+else:
+    print('List lengths don\'t match, please debug')
 
