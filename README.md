@@ -15,7 +15,7 @@ Para iniciar el bot, abrir una terminal en la ubicacion de main.py y ejecutar el
 COMO USAR EL BOT.
 
 Tras agregar el bot a su servidor de discord, podrá usar los siguientes comandos.
->bot status           : Para confirmar que el bot se encuentra en linea
->simulation status    : Para verificar el estado de la simulación actual. permite ver la energía primaria, el tiempo que lleva simulando con esa energía, y el tiempo total desde que se iniciaron todas las simulaciones. Además si la simulación fue completada, se mostrará un mensaje que lo indique junto con la hora a la cual terminó.
->simulation info      : Muestra el rango de energías y el paso que se está utilizando. Además muestra la hora de inicio de todas las simulaciones.
->current time         : Muestra la hora local en el servidor en el cual se está ejecutando el bot.
+>\>bot status           : Para confirmar que el bot se encuentra en linea
+\>simulation status    : Para verificar el estado de la simulación actual. permite ver la energía primaria, el tiempo que lleva simulando con esa energía, y el tiempo total desde que se iniciaron todas las simulaciones. Además si la simulación fue completada, se mostrará un mensaje que lo indique junto con la hora a la cual terminó.
+\>simulation info      : Muestra el rango de energías y el paso que se está utilizando. Además muestra la hora de inicio de todas las simulaciones.
+\>current time         : Muestra la hora local en el servidor en el cual se está ejecutando el bot.
