@@ -73,8 +73,6 @@ def get_response(user_input: str) -> str:
         statuslog_path='/corsika-77500/DATA_SCRIPT/statuslog.txt' ##UPDATE PATH (the same)
         info: str = get_info(statuslog_path)
         return info
-    elif lowered=='insulta al niu':
-        return choice(['niu ctm','el niu se la come','el niu se chocó en el little caesars'])
     elif lowered == 'current time':
         now=datetime.now()
         now_str=str(now).split('.')[0]
