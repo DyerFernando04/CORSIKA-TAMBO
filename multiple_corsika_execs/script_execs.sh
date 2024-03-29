@@ -48,7 +48,7 @@ while [ $(echo "$current_energy <= $END_ENERGY" | bc -l) -eq 1 ]; do
     	
     	# Cambiar SEEDs
     	sed -i "s/^SEED    1   0   0.*/SEED    1   $seed_a   0                  seed for 1. random number sequence/" "${RUN_DIR}/all-inputs-inclined"
-    	sed -i "s/^SEED    2   0   0.*/SEED    1   $seed_b   0                  seed for 2. random number sequence/" "${RUN_DIR}/all-inputs-inclined"
+    	sed -i "s/^SEED    2   0   0.*/SEED    2   $seed_b   0                  seed for 2. random number sequence/" "${RUN_DIR}/all-inputs-inclined"
     	
     	# Ejecutar corsika77500. Aquí tambien cambia depende del ejecutable de run que se tenga y el all-inputs
     	(cd "$RUN_DIR" && ./corsika77500Linux_QGSII_urqmd_inclined < all-inputs-inclined > output$run_number.txt)
