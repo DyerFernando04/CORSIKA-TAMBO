@@ -5,8 +5,10 @@ import matplotlib.colors as cl
 from timeit import default_timer
 from datetime import timedelta
 from tqdm import tqdm
+import os
+import pickle
 
-#FUNCTIONS
+## FUNCTIONS
 def formato_tiempo(segundos):
     delta_tiempo = timedelta(seconds=segundos)
     # Construye la cadena de tiempo
@@ -126,17 +128,52 @@ def assign_to_detector(det_position,df,tol,pf_tol=(None,None)):
         else:
             df.drop(index, inplace=True, axis=0)
     return df    
+def assign_to_detector2(det_position,df,d_side=1):
+    '''
+    given a detector position and a tolerance (radius), assign_to_detector(det_position,df,tol) filters the particles that fall
+    inside that given detector and updates the dataframe of particles, assigning the
+    detector position to the 'detector' column of those entries that fall inside the detector
+    
+    it also deletes the entries that are in the neighbourhood of the detector but do not fall inside the detector
+    
+    the parameters are:
+    det_position:              a tuple that contains the position (x,y) of the detector
+    df:                        the DataFrame of all entries
+    tol:                       a tolerance for particle detection (radius of the detector)
+    pf_tol=(pf_tolx,pf_toly):  [IGNORE] a tolerance for a preliminary filtering of particles in a rectangular neighbourhood of the detector 
+                               (dimensions: 2*pf_tolx by 2*pf_toly) centered at the detector.
+                               it is necesary that tol<=pf_tol(both components). large values will cause problems if the rectangular
+                               neighbourhood is too big and overlaps with the bounds of other detectors 
+    
+    the function returns the updated DataFrame
+                          
+    '''
+        
+    det_x,det_y=det_position
+    possible_particles_index=df.index[(df['x']<=det_x+d_side/2.0) & (df['x']>=det_x-d_side/2.0) & (df['y']<=det_y+d_side/2.0) & (df['y']>=det_y-d_side/2.0)].tolist()
+    for index in possible_particles_index:
+        df.at[index,'detector']= det_position
+    return df    
+def list_directories(path):
+    directories = []
+    for name in os.listdir(path):
+        full_path = os.path.join(path, name)
+        if os.path.isdir(full_path) and not name[0]=='.':
+            directories.append(name)
+    return directories
+def list_dats(path):
+    directories = []
+    for name in os.listdir(path):
+        full_path = os.path.join(path, name)
+        if os.path.isdir(full_path):
+            directories.append(name)
+    return directories
 
-#PARAMETERS
-#Paths
-txt_path='8-12/DAT000008-inclined (2).txt'
-#detector parameters
-xlims=(-5000,5000)
-ylims=(-1375.5,2000)
+
+## Array parameters
+xlims=(-1250,1250)
+ylims=(-1375.5,1375.5)
 sep=150
-
-## TXT to Dataframe
-all_data=txt_to_df(txt_path,xlims=(-5000,5000),ylims=(-2000,2000),inclined=True)
 
 ## DEFINING DETECTOR ARRAY
 x_dets=[]
@@ -171,41 +208,104 @@ for y in y_dets:
 #detector grid list (triangular array)
 detector_grid_list=complete_grid_list[1::2]
 
-## DETECTOR ASSIGNMENT AND GEOMETRIC FILTERING
-i=0
-filtered_data=all_data.copy()
-start=default_timer()
-for det_position in detector_grid_list:
-    assign_to_detector(det_position,filtered_data,tol=10,pf_tol=(10.1,10.1))
-    i+=1
-    now=default_timer()
-    imprimir_barra_de_carga(now-start,i,len(detector_grid_list), longitud=50)
-filtered_data.dropna(inplace=True)
-filtered_data=filtered_data.reset_index(drop=True)
+## PROCESS_DATA FUNCTION
+def process_data(txt_path,detector_grid_list,complete_grid_list):
+    ## TXT to Dataframe
+    all_data=txt_to_df(txt_path,xlims=xlims,ylims=ylims,inclined=True)
 
-## ENERGY IN EACH DETECTOR
-count=0
-energies=[]
+    ## DETECTOR ASSIGNMENT AND GEOMETRIC FILTERING
+    i=0
+    filtered_data=all_data.copy()
+    start=default_timer()
+    for det_position in detector_grid_list:
+        assign_to_detector2(det_position,filtered_data,d_side=2)  #For a square detector with side length of 2m
+        i+=1
+        now=default_timer()
+        imprimir_barra_de_carga(now-start,i,len(detector_grid_list), longitud=50)
+    filtered_data.dropna(inplace=True)
+    filtered_data=filtered_data.reset_index(drop=True)
 
-for det_position in complete_grid_list:
-    det_data=filtered_data[filtered_data['detector']==det_position]
-    deposited_energy=sum(det_data['ek'])
-    energies.append(deposited_energy)
+    ## ENERGY IN EACH DETECTOR
+    count=0
+    energies=[]
+
+    for det_position in complete_grid_list:
+        det_data=filtered_data[filtered_data['detector']==det_position]
+        deposited_energy=sum(det_data['ek'])
+        energies.append(deposited_energy)
+        
+    y_dets=np.unique(np.asarray(complete_grid_list)[:,1])
+    x_dets=np.unique(np.asarray(complete_grid_list)[:,0])
+    len_x=len(x_dets)
+    len_y=len(y_dets)
+
+    det_matrix=np.zeros((len_y,len_x,3)) #det_matrix[i,j,:] (position_x,position_y,energy)
+
+    for i in range(len_y):
+        y_pos=y_dets[-i-1]
+        for j in range(len_x):
+            x_pos=x_dets[j]
+            det_matrix[i,j,0]=x_pos
+            det_matrix[i,j,1]=y_pos
+            det_matrix[i,j,2]=float(energies[complete_grid_list.index((x_pos,y_pos))])
+
+    det_energies = det_matrix[:,:,2]
+    det_total_energy = np.sum(det_energies)
+    return det_total_energy,det_energies
     
-y_dets=np.unique(np.asarray(complete_grid_list)[:,1])
-x_dets=np.unique(np.asarray(complete_grid_list)[:,0])
-len_x=len(x_dets)
-len_y=len(y_dets)
 
-det_matrix=np.zeros((len_y,len_x,3)) #det_matrix[i,j,:] (position_x,position_y,energy)
+## PARAMETERS
+# Paths
+# txt_path='8-12/DAT000008-inclined (2).txt'
 
-for i in range(len_y):
-    y_pos=y_dets[-i-1]
-    for j in range(len_x):
-        x_pos=x_dets[j]
-        det_matrix[i,j,0]=x_pos
-        det_matrix[i,j,1]=y_pos
-        det_matrix[i,j,2]=float(energies[complete_grid_list.index((x_pos,y_pos))])
 
-## GRAPHS
+data_directory = r'C:\Users\cg_h2\Documents\data_tambo\DATA'
+energy_directories = list_directories(data_directory)
+
+primaries_list=[]
+det_energies_list=[]
+det_totals_list=[]
+exceptions=[]
+count=0
+for directory_name in energy_directories:
+    print(f'{directory_name} is being processed.')
+    primary_energy=float(directory_name.split('_')[1])
+    directory_path= os.path.join(data_directory, directory_name)
+    try:
+        txt_path= os.path.join(directory_path, 'data01.txt')
+        det_total_energy,det_energies = process_data(txt_path,detector_grid_list,complete_grid_list)
+        primaries_list.append(primary_energy)
+        det_energies_list.append(det_energies)
+        det_totals_list.append(det_total_energy)        
+    except:
+        print(f'\n{directory_name} Failed.')
+        exceptions.append(directory_name)
+
+    print(f'\n{directory_name} successful.')
+    count+=1
+    left=len(energy_directories)-count
+    print(f'{left} directories remaining')
+print('Data has been processed')
+print(f'The following exceptions have been encountered{exceptions}.')
+
+if len(primaries_list)==len(det_energies_list) and len(det_energies_list)== len(det_totals_list):
+    save_flag = input('Save data?[y/n]: ')
+    if save_flag=='y':
+        pickle_path=r'C:\Users\cg_h2\Documents\data_tambo'
+        pimaries_path=os.path.join(pickle_path, 'primaries.pickle')
+        det_energies_path=os.path.join(pickle_path, 'det_energies.pickle')
+        det_totals_path=os.path.join(pickle_path, 'det_totals.pickle')
+
+        with open(pimaries_path, 'wb') as file:
+            pickle.dump(primaries_list, file)
+
+        with open(det_energies_path, 'wb') as file:
+            pickle.dump(det_energies_list, file)
+
+        with open(det_totals_path, 'wb') as file:
+            pickle.dump(det_totals_list, file)
+    else:
+        print('Not saved')
+else:
+    print('List lengths don\'t match, please debug')
 
